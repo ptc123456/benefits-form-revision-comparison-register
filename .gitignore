@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+artifacts/*
+!artifacts/.gitkeep
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+STAGE-1.md
+STAGE-2.md
