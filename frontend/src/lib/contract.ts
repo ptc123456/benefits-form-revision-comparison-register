@@ -6,6 +6,8 @@ import type { Eip1193Provider } from "./walletProviders";
 export type CaseRecord = {
   case_id: string;
   owner: string;
+  assessor: string;
+  case_nonce: string;
   program_id: string;
   old_url: string;
   new_url: string;
@@ -15,6 +17,8 @@ export type CaseRecord = {
   statuses: Record<string, number>;
   old_revision_id: string;
   new_revision_id: string;
+  frozen_old_revision_id: string;
+  frozen_new_revision_id: string;
   old_deadline: string;
   new_deadline: string;
   required_fields_added: string[];
@@ -33,6 +37,15 @@ export const CONTRACT_ADDRESS = (import.meta.env.VITE_CONTRACT_ADDRESS || "") as
 export const readClient = createClient({ chain: studionet });
 let volatilePendingHash = "";
 let writeInFlight = false;
+type PendingJournal = {
+  hash: TxHash;
+  functionName: string;
+  caseId: string;
+  owner: string;
+  programId?: string;
+  oldUrl?: string;
+  newUrl?: string;
+};
 
 function requireAddress(): `0x${string}` {
   if (!/^0x[a-fA-F0-9]{40}$/.test(CONTRACT_ADDRESS)) {
@@ -51,6 +64,12 @@ export async function readCase(caseId: string): Promise<CaseRecord> {
   return parseCase(result);
 }
 
+export async function readCaseId(owner: string, caseNonce: string): Promise<string> {
+  const result = await readClient.readContract({ address: requireAddress(), functionName: "get_case_id", args: [owner, caseNonce] });
+  if (typeof result !== "string" || !result) throw new Error("The contract returned no deterministic case identity.");
+  return result;
+}
+
 export async function readCaseCount(): Promise<string> {
   const result = await readClient.readContract({ address: requireAddress(), functionName: "get_case_count", args: [] });
   return String(result);
@@ -58,6 +77,27 @@ export async function readCaseCount(): Promise<string> {
 
 function writeClient(address: string, provider: Eip1193Provider): AnyClient {
   return createClient({ chain: studionet, account: address as `0x${string}`, provider });
+}
+
+async function verifyCurrentSession(address: string, provider: Eip1193Provider): Promise<void> {
+  const [chainId, accounts] = await Promise.all([
+    provider.request({ method: "eth_chainId" }),
+    provider.request({ method: "eth_accounts" }),
+  ]);
+  if (String(chainId).toLowerCase() !== "0xf22f") throw new Error("Selected wallet is no longer on GenLayer Studionet.");
+  const active = Array.isArray(accounts) && typeof accounts[0] === "string" ? accounts[0] : "";
+  if (!active || active.toLowerCase() !== address.toLowerCase()) throw new Error("Selected wallet account changed; reconnect before signing.");
+}
+
+function assertCase(record: CaseRecord, expected: { caseId: string; owner: string; state?: string | string[]; programId?: string; oldUrl?: string; newUrl?: string; oldRevisionId?: string; newRevisionId?: string }): void {
+  const states = expected.state ? (Array.isArray(expected.state) ? expected.state : [expected.state]) : [];
+  if (record.case_id !== expected.caseId || record.owner.toLowerCase() !== expected.owner.toLowerCase()) throw new Error("Authoritative readback returned a different case or owner.");
+  if (states.length && !states.includes(record.state)) throw new Error(`Authoritative readback returned state ${record.state}, expected ${states.join(" or ")}.`);
+  if (expected.programId && record.program_id !== expected.programId) throw new Error("Authoritative readback returned a different program.");
+  if (expected.oldUrl && record.old_url !== expected.oldUrl) throw new Error("Authoritative readback returned a different old source.");
+  if (expected.newUrl && record.new_url !== expected.newUrl) throw new Error("Authoritative readback returned a different new source.");
+  if (expected.oldRevisionId && record.frozen_old_revision_id !== expected.oldRevisionId) throw new Error("Authoritative readback returned a different frozen old revision.");
+  if (expected.newRevisionId && record.frozen_new_revision_id !== expected.newRevisionId) throw new Error("Authoritative readback returned a different frozen new revision.");
 }
 
 async function waitForVerifiedWrite(client: AnyClient, hash: TxHash): Promise<void> {
@@ -94,16 +134,17 @@ function proveJournalStorage(): void {
   sessionStorage.removeItem(key);
 }
 
-async function write(address: string, provider: Eip1193Provider, functionName: string, args: string[], verify: () => Promise<void>): Promise<string> {
+async function write(address: string, provider: Eip1193Provider, functionName: string, args: string[], pending: Omit<PendingJournal, "hash" | "functionName">, verify: () => Promise<void>): Promise<string> {
   if (writeInFlight) throw new Error("A transaction is already awaiting verification.");
   proveJournalStorage();
   writeInFlight = true;
   const client = writeClient(address, provider);
   try {
     await client.connect("studionet");
+    await verifyCurrentSession(address, provider);
     const hash = await client.writeContract({ address: requireAddress(), functionName, args, value: BigInt(0) }) as TxHash;
     volatilePendingHash = hash;
-    sessionStorage.setItem("formline.pending", JSON.stringify({ hash, functionName, caseId: args[0] || "" }));
+    sessionStorage.setItem("formline.pending", JSON.stringify({ ...pending, hash, functionName }));
     await waitForVerifiedWrite(client, hash);
     await verify();
     sessionStorage.removeItem("formline.pending");
@@ -118,8 +159,58 @@ async function write(address: string, provider: Eip1193Provider, functionName: s
 }
 
 export const actions = {
-  create: (address: string, provider: Eip1193Provider, programId: string, oldUrl: string, newUrl: string) => write(address, provider, "create_case", [programId, oldUrl, newUrl], async () => { await readCaseCount(); }),
-  freeze: (address: string, provider: Eip1193Provider, caseId: string) => write(address, provider, "freeze_case", [caseId], async () => { await readCase(caseId); }),
-  assess: (address: string, provider: Eip1193Provider, caseId: string) => write(address, provider, "assess", [caseId], async () => { await readCase(caseId); }),
-  retry: (address: string, provider: Eip1193Provider, caseId: string) => write(address, provider, "retry_unresolved", [caseId], async () => { await readCase(caseId); }),
+  create: async (address: string, provider: Eip1193Provider, programId: string, oldUrl: string, newUrl: string, caseNonce: string) => {
+    const caseId = await readCaseId(address, caseNonce);
+    return write(address, provider, "create_case", [programId, oldUrl, newUrl, caseNonce], { caseId, owner: address, programId, oldUrl, newUrl }, async () => {
+      assertCase(await readCase(caseId), { caseId, owner: address, state: "DRAFT", programId, oldUrl, newUrl });
+    });
+  },
+  freeze: (address: string, provider: Eip1193Provider, caseId: string, oldRevisionId: string, newRevisionId: string) => write(address, provider, "freeze_case", [caseId, oldRevisionId, newRevisionId], { caseId, owner: address }, async () => {
+    assertCase(await readCase(caseId), { caseId, owner: address, state: "FROZEN", oldRevisionId, newRevisionId });
+  }),
+  assess: (address: string, provider: Eip1193Provider, caseId: string) => write(address, provider, "assess", [caseId], { caseId, owner: address }, async () => {
+    assertCase(await readCase(caseId), { caseId, owner: address, state: ["ASSESSED", "UNRESOLVED"] });
+  }),
+  retry: (address: string, provider: Eip1193Provider, caseId: string) => write(address, provider, "retry_unresolved", [caseId], { caseId, owner: address }, async () => {
+    assertCase(await readCase(caseId), { caseId, owner: address, state: ["ASSESSED", "UNRESOLVED"] });
+  }),
 };
+
+function pendingJournal(): PendingJournal | null {
+  const raw = sessionStorage.getItem("formline.pending");
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Partial<PendingJournal>;
+    if (typeof value.hash !== "string" || !/^0x[a-fA-F0-9]{64}$/.test(value.hash) || typeof value.caseId !== "string" || typeof value.owner !== "string") return null;
+    return value as PendingJournal;
+  } catch {
+    return null;
+  }
+}
+
+export function hasPendingJournal(): boolean { return pendingJournal() !== null; }
+
+export async function reconcilePending(address: string, provider: Eip1193Provider): Promise<{ hash: string; caseId: string }> {
+  const pending = pendingJournal();
+  if (!pending) throw new Error("No valid pending transaction journal was found.");
+  const client = writeClient(address, provider);
+  try {
+    await client.connect("studionet");
+    await verifyCurrentSession(address, provider);
+    await waitForVerifiedWrite(client, pending.hash);
+    assertCase(await readCase(pending.caseId), {
+      caseId: pending.caseId,
+      owner: address,
+      state: pending.functionName === "create_case" ? "DRAFT" : ["FROZEN", "ASSESSED", "UNRESOLVED"],
+      programId: pending.programId,
+      oldUrl: pending.oldUrl,
+      newUrl: pending.newUrl,
+    });
+    sessionStorage.removeItem("formline.pending");
+    volatilePendingHash = "";
+    writeInFlight = false;
+    return { hash: pending.hash, caseId: pending.caseId };
+  } catch (error) {
+    throw new Error(`${error instanceof Error ? error.message : String(error)} Hash: ${pending.hash}`);
+  }
+}

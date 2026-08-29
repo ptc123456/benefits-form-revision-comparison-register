@@ -6,7 +6,9 @@ This build follows `STAGE-1.md` and `STAGE-2.md` Revision 2.
 
 `FormCase` is represented as canonical JSON in `TreeMap[str, str]` rather than as a nested custom storage dataclass. The JSON schema still stores every required Revision 2 field, including separate sorted field and attachment additions/removals, the deadline flag, retry count, and evidence digest. This avoids a version-sensitive nested storage ABI while preserving the product workflow and public readback.
 
-The assessment fetches both frozen HTTPS sources inside `gl.vm.run_nondet_unsafe`. Each validator refetches and independently derives the normalized comparison. Consensus compares the outcome, identities, revisions, deadlines, sorted change sets, deadline flag, and canonical evidence digest; transport status and explanatory reason are not used as a false substitute for the consequential decision.
+The contract exposes deterministic owner-plus-nonce case IDs. `freeze_case` binds the caller-supplied expected old/new revision IDs; assessment refetches both HTTPS sources inside the current safe `gl.vm.run_nondet` wrapper and fails closed to `SOURCE_REVISION_CHANGED` if either identity changes. Each validator refetches and independently derives the normalized comparison. Consensus compares the outcome, identities, revisions, deadlines, sorted change sets, deadline flag, and canonical evidence digest; transport status and explanatory reason are not used as a false substitute for the consequential decision. Consensus/runtime errors are caught into `CONSENSUS_UNRESOLVED` before mutation, so the owner is also the disclosed assessor in this MVP and `retry_unresolved` can retry a frozen case whose prior assessment became `UNDETERMINED` before storage mutation.
+
+The frontend verifies the selected provider's current chain and account immediately before every write, performs operation-specific case readback, uses the deterministic case ID instead of global counter discovery, and exposes hash-based pending-transaction reconciliation after reload.
 
 ## Source contract shape
 

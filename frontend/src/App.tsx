@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { actions, readCase, readCaseCount, type CaseRecord } from "./lib/contract";
+import { actions, hasPendingJournal, readCase, readCaseCount, readCaseId, reconcilePending, type CaseRecord } from "./lib/contract";
 import { connectProvider, discoverWalletProviders, type WalletProvider } from "./lib/walletProviders";
 
 const emptyCase: CaseRecord = {
-  case_id: "", owner: "", program_id: "", old_url: "", new_url: "", state: "", outcome: "", reason: "", statuses: {},
+  case_id: "", owner: "", assessor: "", case_nonce: "", program_id: "", old_url: "", new_url: "", state: "", outcome: "", reason: "", statuses: {},
   old_revision_id: "", new_revision_id: "", old_deadline: "", new_deadline: "", required_fields_added: [], required_fields_removed: [],
-  required_attachments_added: [], required_attachments_removed: [], deadline_changed: false, evidence_digest: "", retry_count: 0,
+  frozen_old_revision_id: "", frozen_new_revision_id: "", required_attachments_added: [], required_attachments_removed: [], deadline_changed: false, evidence_digest: "", retry_count: 0,
 };
 
 export function App() {
@@ -15,6 +15,8 @@ export function App() {
   const [programId, setProgramId] = useState("BENEFITS-2026");
   const [oldUrl, setOldUrl] = useState("");
   const [newUrl, setNewUrl] = useState("");
+  const [oldRevisionId, setOldRevisionId] = useState("");
+  const [newRevisionId, setNewRevisionId] = useState("");
   const [caseId, setCaseId] = useState("");
   const [record, setRecord] = useState<CaseRecord>(emptyCase);
   const [caseCount, setCaseCount] = useState("—");
@@ -22,6 +24,7 @@ export function App() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [txHash, setTxHash] = useState("");
+  const [pending, setPending] = useState(false);
 
   useEffect(() => { discoverWalletProviders().then(setWallets).catch(() => setWallets([])); }, []);
   useEffect(() => {
@@ -31,6 +34,7 @@ export function App() {
       const pending = JSON.parse(raw) as { hash?: unknown; functionName?: unknown };
       if (typeof pending.hash === "string" && pending.hash) {
         setTxHash(pending.hash);
+        setPending(true);
         setNotice(`Pending ${typeof pending.functionName === "string" ? pending.functionName : "transaction"} found after reload. Reconcile this hash before retrying.`);
       }
     } catch {
@@ -54,9 +58,31 @@ export function App() {
 
   async function run(label: string, action: () => Promise<string | void>, after?: () => Promise<void>) {
     setBusy(label); setError(""); setNotice("");
-    try { const hash = await action(); if (typeof hash === "string") setTxHash(hash); if (after) await after(); setNotice(hash ? `Finalized and verified: ${hash}` : `${label} completed and was read back.`); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    try { const hash = await action(); if (typeof hash === "string") { setTxHash(hash); setPending(false); } if (after) await after(); setNotice(hash ? `Finalized and verified: ${hash}` : `${label} completed and was read back.`); }
+    catch (cause) { setPending(hasPendingJournal()); setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(""); }
+  }
+
+  async function registerPair() {
+    const caseNonce = crypto.randomUUID().replaceAll("-", "");
+    await run("Register case", () => actions.create(address, wallet!.provider, programId, oldUrl, newUrl, caseNonce), async () => {
+      const createdCaseId = await readCaseId(address, caseNonce);
+      setCaseId(createdCaseId);
+      setRecord(await readCase(createdCaseId));
+      setCaseCount(await readCaseCount());
+    });
+  }
+
+  async function reconcile() {
+    if (!wallet || !address) return;
+    setBusy("Reconcile transaction"); setError(""); setNotice("");
+    try {
+      const result = await reconcilePending(address, wallet.provider);
+      setTxHash(result.hash); setCaseId(result.caseId); setRecord(await readCase(result.caseId)); setPending(false);
+      setNotice(`Reconciled and verified: ${result.hash}`);
+    } catch (cause) {
+      setPending(hasPendingJournal()); setError(cause instanceof Error ? cause.message : String(cause));
+    } finally { setBusy(""); }
   }
 
   async function connect() {
@@ -68,7 +94,7 @@ export function App() {
 
   async function refresh() { setError(""); try { if (caseId) setRecord(await readCase(caseId)); setCaseCount(await readCaseCount()); } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); } }
 
-  const canWrite = Boolean(address && wallet && !busy);
+  const canWrite = Boolean(address && wallet && !busy && !pending);
   return <main className="shell">
     <header className="masthead"><div><p className="eyebrow">FORM / LINE · STUDIONET REGISTER</p><h1>Catch a requirement change before it catches an applicant.</h1><p className="lede">Freeze two structured form revisions. GenLayer validators independently retrieve the sources, normalize the required sets, and record the comparison that survives the review.</p></div><div className="network-chip"><span className="pulse" /> Studionet <small>chain 61999</small></div></header>
     <section className="grid">
@@ -76,17 +102,18 @@ export function App() {
         <label>Program ID<input value={programId} onChange={(e) => setProgramId(e.target.value)} placeholder="BENEFITS-2026" /></label>
         <label>Older structured form URL<input value={oldUrl} onChange={(e) => setOldUrl(e.target.value)} placeholder="https://…/revision-1.json" /></label>
         <label>Newer structured form URL<input value={newUrl} onChange={(e) => setNewUrl(e.target.value)} placeholder="https://…/revision-2.json" /></label>
-        <button disabled={!canWrite || !programId || !oldUrl || !newUrl} onClick={() => run("Register case", () => actions.create(address, wallet!.provider, programId, oldUrl, newUrl), async () => { const count = await readCaseCount(); setCaseId(count); setRecord(await readCase(count)); setCaseCount(count); })}>Register pair <span>↗</span></button>
+        <button disabled={!canWrite || !programId || !oldUrl || !newUrl} onClick={registerPair}>Register pair <span>↗</span></button>
         <p className="hint">Sources must expose `program_id`, `revision_id`, required field IDs, attachment IDs, and an ISO deadline.</p>
       </article>
       <article className="card journey"><div className="card-top"><div><span className="step">02</span><h2>Advance a case</h2></div><span className={`state ${record.state.toLowerCase()}`}>{record.state || "No case loaded"}</span></div>
-        <div className="inline"><label>Case ID<input value={caseId} onChange={(e) => setCaseId(e.target.value)} placeholder="1" /></label><button className="secondary" disabled={!caseId || Boolean(busy)} onClick={refresh}>Read case</button></div>
+        <div className="inline"><label>Case ID<input value={caseId} onChange={(e) => setCaseId(e.target.value)} placeholder="case-…" /></label><button className="secondary" disabled={!caseId || Boolean(busy)} onClick={refresh}>Read case</button></div>
+        <div className="inline"><label>Frozen old revision ID<input value={oldRevisionId} onChange={(e) => setOldRevisionId(e.target.value)} placeholder="r1" /></label><label>Frozen new revision ID<input value={newRevisionId} onChange={(e) => setNewRevisionId(e.target.value)} placeholder="r2" /></label></div>
         <div className="timeline"><div className={record.state === "DRAFT" || record.state === "FROZEN" || record.state === "ASSESSED" ? "done" : ""}><b>Draft</b><span>Registered</span></div><div className={record.state === "FROZEN" || record.state === "ASSESSED" ? "done" : ""}><b>Freeze</b><span>Identity bound</span></div><div className={record.state === "ASSESSED" ? "done" : ""}><b>Assess</b><span>Consensus readback</span></div></div>
-        <div className="actions"><button className="secondary" disabled={!canWrite || !caseId} onClick={() => run("Freeze case", () => actions.freeze(address, wallet!.provider, caseId), refresh)}>Freeze</button><button disabled={!canWrite || !caseId || record.state !== "FROZEN"} onClick={() => run("Assess case", () => actions.assess(address, wallet!.provider, caseId), refresh)}>Assess sources</button><button className="secondary" disabled={!canWrite || !caseId || record.state !== "UNRESOLVED"} onClick={() => run("Retry case", () => actions.retry(address, wallet!.provider, caseId), refresh)}>Retry unresolved</button></div>
+        <div className="actions"><button className="secondary" disabled={!canWrite || !caseId || !oldRevisionId || !newRevisionId} onClick={() => run("Freeze case", () => actions.freeze(address, wallet!.provider, caseId, oldRevisionId, newRevisionId), refresh)}>Freeze</button><button disabled={!canWrite || !caseId || record.state !== "FROZEN"} onClick={() => run("Assess case", () => actions.assess(address, wallet!.provider, caseId), refresh)}>Assess sources</button><button className="secondary" disabled={!canWrite || !caseId || !["FROZEN", "UNRESOLVED"].includes(record.state)} onClick={() => run("Retry case", () => actions.retry(address, wallet!.provider, caseId), refresh)}>Retry unresolved</button></div>
       </article>
     </section>
     <section className="lower-grid"><article className="card compare"><div className="card-top"><div><span className="step">03</span><h2>Decision record</h2></div><span className={`outcome ${record.outcome.toLowerCase()}`}>{record.outcome || "Awaiting assessment"}</span></div>{record.case_id ? <><div className="revision-row"><div><small>Old revision</small><strong>{record.old_revision_id || "—"}</strong><span>{record.old_deadline || "—"}</span></div><div className="arrow">→</div><div><small>New revision</small><strong>{record.new_revision_id || "—"}</strong><span>{record.new_deadline || "—"}</span></div></div><div className="change-grid"><Change title="Fields added" items={record.required_fields_added} /><Change title="Fields removed" items={record.required_fields_removed} /><Change title="Attachments added" items={record.required_attachments_added} /><Change title="Attachments removed" items={record.required_attachments_removed} /></div><p className="digest">Evidence digest <code>{record.evidence_digest || "not available"}</code></p></> : <div className="empty">Read a case after its finalized write to see the normalized change set.</div>}</article><aside className="card wallet"><p className="eyebrow">CONTROL ROOM</p><h2>Choose a signer</h2><p className="muted">The app never silently picks the first injected wallet. Reloads start disconnected.</p><select aria-label="Wallet provider" value={wallet?.info.uuid || ""} onChange={(e) => setWallet(wallets.find((item) => item.info.uuid === e.target.value) || null)}><option value="">Select MetaMask, OKX, or Rabby</option>{wallets.map((item) => <option key={item.info.uuid} value={item.info.uuid}>{item.info.name}</option>)}</select><button className="secondary wide" onClick={connect}>{connectedLabel}</button><div className="rule-list"><span><i />Wallet boundary</span><span><i />Finality checked</span><span><i />State readback checked</span></div></aside></section>
-    {(notice || error || busy) && <div className={`toast ${error ? "danger" : ""}`} role={error ? "alert" : "status"}>{busy ? `${busy} · waiting for finality…` : error || notice}{txHash && !busy && <span className="toast-link"><button className="toast-copy" onClick={() => navigator.clipboard?.writeText(txHash)}>Copy hash</button><a href={`https://explorer-studio.genlayer.com/tx/${txHash}`} target="_blank" rel="noreferrer">Explorer ↗</a></span>}</div>}
+    {(notice || error || busy) && <div className={`toast ${error ? "danger" : ""}`} role={error ? "alert" : "status"}>{busy ? `${busy} · waiting for finality…` : error || notice}{txHash && !busy && <span className="toast-link"><button className="toast-copy" onClick={() => navigator.clipboard?.writeText(txHash)}>Copy hash</button><a href={`https://explorer-studio.genlayer.com/tx/${txHash}`} target="_blank" rel="noreferrer">Explorer ↗</a>{pending && <button className="toast-copy" onClick={reconcile}>Reconcile transaction</button>}</span>}</div>}
   </main>;
 }
 

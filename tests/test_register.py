@@ -23,8 +23,8 @@ def source(program_id="BENEFITS-2026", revision_id="r1", fields=None, attachment
 def setup_case(direct_vm, direct_deploy, direct_alice):
     direct_vm.sender = direct_alice
     contract = direct_deploy(str(CONTRACT))
-    case_id = contract.create_case("BENEFITS-2026", OLD_URL, NEW_URL)
-    contract.freeze_case(case_id)
+    case_id = contract.create_case("BENEFITS-2026", OLD_URL, NEW_URL, "nonce-1")
+    contract.freeze_case(case_id, "r1", "r2")
     return contract, case_id
 
 
@@ -36,11 +36,11 @@ def mock_pair(direct_vm, old_body, new_body, old_status=200, new_status=200):
 def test_create_and_freeze_owner_gate(direct_vm, direct_deploy, direct_alice, direct_bob):
     direct_vm.sender = direct_alice
     contract = direct_deploy(str(CONTRACT))
-    case_id = contract.create_case("BENEFITS-2026", OLD_URL, NEW_URL)
+    case_id = contract.create_case("BENEFITS-2026", OLD_URL, NEW_URL, "nonce-1")
     with direct_vm.prank(direct_bob):
         with direct_vm.expect_revert("Only the case owner can freeze it"):
-            contract.freeze_case(case_id)
-    contract.freeze_case(case_id)
+            contract.freeze_case(case_id, "r1", "r2")
+    contract.freeze_case(case_id, "r1", "r2")
     assert json.loads(contract.get_case(case_id))["state"] == "FROZEN"
 
 
@@ -97,6 +97,28 @@ def test_invalid_source_and_disagreement_are_safe(direct_vm, direct_deploy, dire
     mock_pair(direct_vm, source(), b"not-json")
     contract.assess(case_id)
     assert json.loads(contract.get_case(case_id))["outcome"] == "UNRESOLVED"
+
+
+def test_frozen_revision_identity_mismatch_is_retryable(direct_vm, direct_deploy, direct_alice):
+    contract, case_id = setup_case(direct_vm, direct_deploy, direct_alice)
+    mock_pair(direct_vm, source(), source(revision_id="r3"))
+    contract.assess(case_id)
+    result = json.loads(contract.get_case(case_id))
+    assert result["outcome"] == "UNRESOLVED"
+    assert result["reason"] == "SOURCE_REVISION_CHANGED"
+    assert result["retry_count"] == 0
+
+
+def test_assessor_boundary_and_retry_from_frozen_case(direct_vm, direct_deploy, direct_alice, direct_bob):
+    contract, case_id = setup_case(direct_vm, direct_deploy, direct_alice)
+    mock_pair(direct_vm, source(), source(revision_id="r2"))
+    with direct_vm.prank(direct_bob):
+        with direct_vm.expect_revert("Only the assigned assessor can assess this case"):
+            contract.assess(case_id)
+    contract.retry_unresolved(case_id)
+    result = json.loads(contract.get_case(case_id))
+    assert result["state"] == "ASSESSED"
+    assert result["retry_count"] == 1
 
 
 def test_validator_rejects_material_disagreement(direct_vm, direct_deploy, direct_alice):

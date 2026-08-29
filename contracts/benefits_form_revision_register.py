@@ -13,6 +13,7 @@ MAX_URL_LENGTH = 2048
 MAX_ID_LENGTH = 80
 MAX_IDS = 64
 MAX_RETRIES = 3
+MAX_NONCE_LENGTH = 80
 
 OUTCOMES = (
     "SAME_REQUIREMENTS",
@@ -31,6 +32,18 @@ def _canonical(value) -> str:
 
 def _sha256(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _valid_nonce(value: str) -> bool:
+    return (
+        isinstance(value, str)
+        and 1 <= len(value) <= MAX_NONCE_LENGTH
+        and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]*", value) is not None
+    )
+
+
+def _case_id(owner: str, nonce: str) -> str:
+    return "case-" + _sha256(_canonical({"owner": owner, "nonce": nonce}))
 
 
 def _valid_url(value: str) -> bool:
@@ -140,7 +153,7 @@ def _parse_source(response: dict) -> dict:
         return {"ok": False, "value": {}}
 
 
-def _evaluate(program_id: str, old_url: str, new_url: str) -> dict:
+def _evaluate(program_id: str, old_url: str, new_url: str, expected_old_revision: str, expected_new_revision: str) -> dict:
     old_response = _fetch(old_url)
     new_response = _fetch(new_url)
     statuses = {"old": old_response["status"], "new": new_response["status"]}
@@ -157,6 +170,11 @@ def _evaluate(program_id: str, old_url: str, new_url: str) -> dict:
 
     old_value = old["value"]
     new_value = new["value"]
+    if (
+        old_value["revision_id"] != expected_old_revision
+        or new_value["revision_id"] != expected_new_revision
+    ):
+        return _safe_result("SOURCE_REVISION_CHANGED", statuses)
     old_fields = set(old_value["required_field_ids"])
     new_fields = set(new_value["required_field_ids"])
     old_attachments = set(old_value["required_attachment_ids"])
@@ -258,16 +276,23 @@ class BenefitsFormRevisionRegister(gl.Contract):
         self.case_count = u256(0)
 
     @gl.public.write
-    def create_case(self, program_id: str, old_url: str, new_url: str) -> str:
+    def create_case(self, program_id: str, old_url: str, new_url: str, case_nonce: str) -> str:
         _validate_case_input(program_id, old_url, new_url)
+        if not _valid_nonce(case_nonce):
+            raise gl.vm.UserError("Case nonce must be a bounded identifier")
         if int(self.case_count) >= MAX_CASES:
             raise gl.vm.UserError("Case capacity reached")
+        owner = str(gl.message.sender_address)
+        case_id = _case_id(owner, case_nonce)
+        if self.cases.get(case_id, ""):
+            raise gl.vm.UserError("Case nonce already used by this owner")
         self.case_count += u256(1)
-        case_id = str(int(self.case_count))
         self.cases[case_id] = _canonical(
             {
                 "case_id": case_id,
-                "owner": str(gl.message.sender_address),
+                "owner": owner,
+                "assessor": owner,
+                "case_nonce": case_nonce,
                 "program_id": program_id,
                 "old_url": old_url,
                 "new_url": new_url,
@@ -279,6 +304,8 @@ class BenefitsFormRevisionRegister(gl.Contract):
                 "new_program_id": "",
                 "old_revision_id": "",
                 "new_revision_id": "",
+                "frozen_old_revision_id": "",
+                "frozen_new_revision_id": "",
                 "old_deadline": "",
                 "new_deadline": "",
                 "required_fields_added": [],
@@ -293,7 +320,7 @@ class BenefitsFormRevisionRegister(gl.Contract):
         return case_id
 
     @gl.public.write
-    def freeze_case(self, case_id: str) -> None:
+    def freeze_case(self, case_id: str, old_revision_id: str, new_revision_id: str) -> None:
         raw = self.cases.get(case_id, "")
         if not raw:
             raise gl.vm.UserError("Case not found")
@@ -302,6 +329,12 @@ class BenefitsFormRevisionRegister(gl.Contract):
             raise gl.vm.UserError("Only the case owner can freeze it")
         if case["state"] != "DRAFT":
             raise gl.vm.UserError("Only a draft case can be frozen")
+        if not _valid_program_id(old_revision_id) or not _valid_program_id(new_revision_id):
+            raise gl.vm.UserError("Revision IDs must be bounded identifiers")
+        if old_revision_id == new_revision_id:
+            raise gl.vm.UserError("Old and new revision IDs must differ")
+        case["frozen_old_revision_id"] = old_revision_id
+        case["frozen_new_revision_id"] = new_revision_id
         case["state"] = "FROZEN"
         self.cases[case_id] = _canonical(case)
 
@@ -313,15 +346,19 @@ class BenefitsFormRevisionRegister(gl.Contract):
         allowed_state = case["state"] == "FROZEN" or (retry and case["state"] == "UNRESOLVED")
         if not allowed_state:
             raise gl.vm.UserError("Case must be frozen or unresolved before assessment")
+        if case["assessor"] != str(gl.message.sender_address):
+            raise gl.vm.UserError("Only the assigned assessor can assess this case")
         if retry and int(case["retry_count"]) >= MAX_RETRIES:
             raise gl.vm.UserError("Retry limit reached")
 
         program_id = case["program_id"]
         old_url = case["old_url"]
         new_url = case["new_url"]
+        expected_old_revision = case["frozen_old_revision_id"]
+        expected_new_revision = case["frozen_new_revision_id"]
 
         def leader_fn() -> str:
-            return _canonical(_evaluate(program_id, old_url, new_url))
+            return _canonical(_evaluate(program_id, old_url, new_url, expected_old_revision, expected_new_revision))
 
         def validator_fn(leader_result: gl.vm.Result) -> bool:
             if not isinstance(leader_result, gl.vm.Return):
@@ -333,7 +370,10 @@ class BenefitsFormRevisionRegister(gl.Contract):
             except Exception:
                 return False
 
-        result = json.loads(gl.vm.run_nondet_unsafe(leader_fn, validator_fn))
+        try:
+            result = json.loads(gl.vm.run_nondet(leader_fn, validator_fn))
+        except Exception:
+            result = _safe_result("CONSENSUS_UNRESOLVED", {})
         case.update(result)
         case["state"] = "UNRESOLVED" if result["outcome"] == "UNRESOLVED" else "ASSESSED"
         case["retry_count"] = int(case["retry_count"]) + (1 if retry else 0)
@@ -346,6 +386,12 @@ class BenefitsFormRevisionRegister(gl.Contract):
     @gl.public.write
     def retry_unresolved(self, case_id: str) -> None:
         self._assess_case(case_id, True)
+
+    @gl.public.view
+    def get_case_id(self, owner: str, case_nonce: str) -> str:
+        if not _valid_nonce(case_nonce):
+            raise gl.vm.UserError("Case nonce must be a bounded identifier")
+        return _case_id(owner, case_nonce)
 
     @gl.public.view
     def get_case(self, case_id: str) -> str:
