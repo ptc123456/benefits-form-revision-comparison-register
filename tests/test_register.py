@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 
 CONTRACT = Path(__file__).parents[1] / "contracts" / "benefits_form_revision_register.py"
 OLD_URL = "https://forms.example.org/benefits/old.json"
@@ -128,6 +130,20 @@ def test_validator_rejects_material_disagreement(direct_vm, direct_deploy, direc
     direct_vm.clear_mocks()
     mock_pair(direct_vm, source(), source(revision_id="r2", fields=["applicant_name", "income"]))
     assert direct_vm.run_validator() is False
+
+
+def test_transaction_consensus_failure_leaves_case_frozen(direct_vm, direct_deploy, direct_alice, monkeypatch):
+    contract, case_id = setup_case(direct_vm, direct_deploy, direct_alice)
+
+    import genlayer.gl.vm as gl_vm
+
+    def fail_consensus(*_args, **_kwargs):
+        raise RuntimeError("simulated transaction-level consensus failure")
+
+    monkeypatch.setattr(gl_vm, "run_nondet", fail_consensus)
+    with pytest.raises(RuntimeError, match="transaction-level consensus failure"):
+        contract.assess(case_id)
+    assert json.loads(contract.get_case(case_id))["state"] == "FROZEN"
 
 
 def test_retry_is_bounded(direct_vm, direct_deploy, direct_alice):

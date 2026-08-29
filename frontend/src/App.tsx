@@ -29,16 +29,28 @@ export function App() {
   useEffect(() => { discoverWalletProviders().then(setWallets).catch(() => setWallets([])); }, []);
   useEffect(() => {
     const raw = sessionStorage.getItem("formline.pending");
-    if (!raw) return;
+    if (raw) {
+      try {
+        const pending = JSON.parse(raw) as { hash?: unknown; functionName?: unknown };
+        if (typeof pending.hash === "string" && pending.hash) {
+          setTxHash(pending.hash);
+          setPending(true);
+          setNotice(`Pending ${typeof pending.functionName === "string" ? pending.functionName : "transaction"} found after reload. Reconcile this hash before retrying.`);
+        }
+      } catch {
+        sessionStorage.removeItem("formline.pending");
+      }
+      return;
+    }
     try {
-      const pending = JSON.parse(raw) as { hash?: unknown; functionName?: unknown };
-      if (typeof pending.hash === "string" && pending.hash) {
-        setTxHash(pending.hash);
-        setPending(true);
-        setNotice(`Pending ${typeof pending.functionName === "string" ? pending.functionName : "transaction"} found after reload. Reconcile this hash before retrying.`);
+      const failed = JSON.parse(sessionStorage.getItem("formline.failed") || "[]") as Array<{ hash?: unknown; status?: unknown; functionName?: unknown }>;
+      const latest = failed[0];
+      if (typeof latest?.hash === "string") {
+        setTxHash(latest.hash);
+        setNotice(`Previous ${typeof latest.functionName === "string" ? latest.functionName : "transaction"} ended ${String(latest.status || "without finality")}. Hash retained; inspect it before retrying.`);
       }
     } catch {
-      sessionStorage.removeItem("formline.pending");
+      sessionStorage.removeItem("formline.failed");
     }
   }, []);
   useEffect(() => {
@@ -59,7 +71,12 @@ export function App() {
   async function run(label: string, action: () => Promise<string | void>, after?: () => Promise<void>) {
     setBusy(label); setError(""); setNotice("");
     try { const hash = await action(); if (typeof hash === "string") { setTxHash(hash); setPending(false); } if (after) await after(); setNotice(hash ? `Finalized and verified: ${hash}` : `${label} completed and was read back.`); }
-    catch (cause) { setPending(hasPendingJournal()); setError(cause instanceof Error ? cause.message : String(cause)); }
+    catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      const hash = message.match(/Hash:\s(0x[a-fA-F0-9]{64})/)?.[1];
+      if (hash) setTxHash(hash);
+      setPending(hasPendingJournal()); setError(message);
+    }
     finally { setBusy(""); }
   }
 
@@ -78,8 +95,12 @@ export function App() {
     setBusy("Reconcile transaction"); setError(""); setNotice("");
     try {
       const result = await reconcilePending(address, wallet.provider);
-      setTxHash(result.hash); setCaseId(result.caseId); setRecord(await readCase(result.caseId)); setPending(false);
-      setNotice(`Reconciled and verified: ${result.hash}`);
+      setTxHash(result.hash); setPending(false);
+      if (result.verified) { setCaseId(result.caseId); setRecord(await readCase(result.caseId)); setNotice(`Reconciled and verified: ${result.hash}`); }
+      else {
+        if (result.caseId && result.functionName !== "create_case") { setCaseId(result.caseId); setRecord(await readCase(result.caseId)); }
+        setNotice(`${result.functionName} ended ${result.status}; hash retained in failed history. Retry from the unchanged case state.`);
+      }
     } catch (cause) {
       setPending(hasPendingJournal()); setError(cause instanceof Error ? cause.message : String(cause));
     } finally { setBusy(""); }

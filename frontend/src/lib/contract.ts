@@ -45,6 +45,8 @@ type PendingJournal = {
   programId?: string;
   oldUrl?: string;
   newUrl?: string;
+  oldRevisionId?: string;
+  newRevisionId?: string;
 };
 
 function requireAddress(): `0x${string}` {
@@ -100,7 +102,9 @@ function assertCase(record: CaseRecord, expected: { caseId: string; owner: strin
   if (expected.newRevisionId && record.frozen_new_revision_id !== expected.newRevisionId) throw new Error("Authoritative readback returned a different frozen new revision.");
 }
 
-async function waitForVerifiedWrite(client: AnyClient, hash: TxHash): Promise<void> {
+type WriteTerminal = { status: string; execution: string };
+
+async function waitForVerifiedWrite(client: AnyClient, hash: TxHash): Promise<WriteTerminal> {
   const deadline = Date.now() + 12 * 60 * 1000;
   while (Date.now() < deadline) {
     const transaction = await client.getTransaction({ hash });
@@ -114,16 +118,24 @@ async function waitForVerifiedWrite(client: AnyClient, hash: TxHash): Promise<vo
       typed.txExecutionResultName ??
       (leader?.execution_result === "SUCCESS" && leader.result?.status === "return" ? ExecutionResult.FINISHED_WITH_RETURN : ""),
     ).toUpperCase();
-    if (status === String(TransactionStatus.FINALIZED).toUpperCase()) {
-      if (execution !== String(ExecutionResult.FINISHED_WITH_RETURN).toUpperCase()) {
-        throw new Error(`Transaction finalized with execution result ${execution}.`);
-      }
-      return;
-    }
-    if (status === "UNDETERMINED" || status === "CANCELED") throw new Error(`Transaction ended with status ${status}.`);
+    if (status === String(TransactionStatus.FINALIZED).toUpperCase()) return { status, execution };
+    if (status === "UNDETERMINED" || status === "CANCELED") return { status, execution };
     await new Promise((resolve) => window.setTimeout(resolve, 5000));
   }
   throw new Error("Timed out while waiting for GenLayer finality; keep the transaction hash for reconciliation.");
+}
+
+function rememberFailedTransaction(pending: PendingJournal, terminal: WriteTerminal): void {
+  let history: unknown[] = [];
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem("formline.failed") || "[]");
+    if (Array.isArray(parsed)) history = parsed;
+  } catch { /* replace malformed local history */ }
+  history.unshift({ ...pending, status: terminal.status, execution: terminal.execution, failedAt: new Date().toISOString() });
+  sessionStorage.setItem("formline.failed", JSON.stringify(history.slice(0, 8)));
+  sessionStorage.removeItem("formline.pending");
+  volatilePendingHash = "";
+  writeInFlight = false;
 }
 
 function proveJournalStorage(): void {
@@ -145,7 +157,11 @@ async function write(address: string, provider: Eip1193Provider, functionName: s
     const hash = await client.writeContract({ address: requireAddress(), functionName, args, value: BigInt(0) }) as TxHash;
     volatilePendingHash = hash;
     sessionStorage.setItem("formline.pending", JSON.stringify({ ...pending, hash, functionName }));
-    await waitForVerifiedWrite(client, hash);
+    const terminal = await waitForVerifiedWrite(client, hash);
+    if (terminal.status !== String(TransactionStatus.FINALIZED).toUpperCase() || terminal.execution !== String(ExecutionResult.FINISHED_WITH_RETURN).toUpperCase()) {
+      rememberFailedTransaction({ ...pending, hash, functionName }, terminal);
+      throw new Error(`Transaction ended with status ${terminal.status} and execution ${terminal.execution}. Retry from the unchanged case state. Hash: ${hash}`);
+    }
     await verify();
     sessionStorage.removeItem("formline.pending");
     volatilePendingHash = "";
@@ -165,7 +181,7 @@ export const actions = {
       assertCase(await readCase(caseId), { caseId, owner: address, state: "DRAFT", programId, oldUrl, newUrl });
     });
   },
-  freeze: (address: string, provider: Eip1193Provider, caseId: string, oldRevisionId: string, newRevisionId: string) => write(address, provider, "freeze_case", [caseId, oldRevisionId, newRevisionId], { caseId, owner: address }, async () => {
+  freeze: (address: string, provider: Eip1193Provider, caseId: string, oldRevisionId: string, newRevisionId: string) => write(address, provider, "freeze_case", [caseId, oldRevisionId, newRevisionId], { caseId, owner: address, oldRevisionId, newRevisionId }, async () => {
     assertCase(await readCase(caseId), { caseId, owner: address, state: "FROZEN", oldRevisionId, newRevisionId });
   }),
   assess: (address: string, provider: Eip1193Provider, caseId: string) => write(address, provider, "assess", [caseId], { caseId, owner: address }, async () => {
@@ -190,26 +206,34 @@ function pendingJournal(): PendingJournal | null {
 
 export function hasPendingJournal(): boolean { return pendingJournal() !== null; }
 
-export async function reconcilePending(address: string, provider: Eip1193Provider): Promise<{ hash: string; caseId: string }> {
+export async function reconcilePending(address: string, provider: Eip1193Provider): Promise<{ hash: string; caseId: string; functionName: string; status: string; verified: boolean }> {
   const pending = pendingJournal();
   if (!pending) throw new Error("No valid pending transaction journal was found.");
   const client = writeClient(address, provider);
   try {
     await client.connect("studionet");
     await verifyCurrentSession(address, provider);
-    await waitForVerifiedWrite(client, pending.hash);
+    const terminal = await waitForVerifiedWrite(client, pending.hash);
+    const finalized = terminal.status === String(TransactionStatus.FINALIZED).toUpperCase();
+    const succeeded = finalized && terminal.execution === String(ExecutionResult.FINISHED_WITH_RETURN).toUpperCase();
+    if (!succeeded) {
+      rememberFailedTransaction(pending, terminal);
+      return { hash: pending.hash, caseId: pending.caseId, functionName: pending.functionName, status: terminal.status, verified: false };
+    }
     assertCase(await readCase(pending.caseId), {
       caseId: pending.caseId,
       owner: address,
-      state: pending.functionName === "create_case" ? "DRAFT" : ["FROZEN", "ASSESSED", "UNRESOLVED"],
+      state: pending.functionName === "create_case" ? "DRAFT" : pending.functionName === "freeze_case" ? "FROZEN" : ["ASSESSED", "UNRESOLVED"],
       programId: pending.programId,
       oldUrl: pending.oldUrl,
       newUrl: pending.newUrl,
+      oldRevisionId: pending.oldRevisionId,
+      newRevisionId: pending.newRevisionId,
     });
     sessionStorage.removeItem("formline.pending");
     volatilePendingHash = "";
     writeInFlight = false;
-    return { hash: pending.hash, caseId: pending.caseId };
+    return { hash: pending.hash, caseId: pending.caseId, functionName: pending.functionName, status: terminal.status, verified: true };
   } catch (error) {
     throw new Error(`${error instanceof Error ? error.message : String(error)} Hash: ${pending.hash}`);
   }

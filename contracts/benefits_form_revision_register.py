@@ -370,10 +370,7 @@ class BenefitsFormRevisionRegister(gl.Contract):
             except Exception:
                 return False
 
-        try:
-            result = json.loads(gl.vm.run_nondet(leader_fn, validator_fn))
-        except Exception:
-            result = _safe_result("CONSENSUS_UNRESOLVED", {})
+        result = json.loads(gl.vm.run_nondet(leader_fn, validator_fn))
         case.update(result)
         case["state"] = "UNRESOLVED" if result["outcome"] == "UNRESOLVED" else "ASSESSED"
         case["retry_count"] = int(case["retry_count"]) + (1 if retry else 0)
