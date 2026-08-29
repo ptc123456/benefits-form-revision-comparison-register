@@ -25,6 +25,19 @@ export function App() {
 
   useEffect(() => { discoverWalletProviders().then(setWallets).catch(() => setWallets([])); }, []);
   useEffect(() => {
+    const raw = sessionStorage.getItem("formline.pending");
+    if (!raw) return;
+    try {
+      const pending = JSON.parse(raw) as { hash?: unknown; functionName?: unknown };
+      if (typeof pending.hash === "string" && pending.hash) {
+        setTxHash(pending.hash);
+        setNotice(`Pending ${typeof pending.functionName === "string" ? pending.functionName : "transaction"} found after reload. Reconcile this hash before retrying.`);
+      }
+    } catch {
+      sessionStorage.removeItem("formline.pending");
+    }
+  }, []);
+  useEffect(() => {
     if (!wallet?.provider.on) return;
     const onAccounts = (...args: unknown[]) => {
       const accounts = args[0];
