@@ -1,5 +1,17 @@
 # Verification record
 
+## PRE_DEPLOY package identity
+
+- Checkpoint boundary: `PRE_DEPLOY` only. This record authorizes no deployment,
+  signature, contract write, GitHub push, or Vercel release.
+- Exact contract source commit under review: `48a123d49c3dae79dc17a669afed7a43eacfaba9`.
+- Exact contract source SHA-256: `5B2A195B900DBCB0027DF3B9674FEC74C2304AF877419EA8C32A37DC5F0566C6`.
+- The follow-up evidence-package commit contains verification metadata only; the
+  contract source is unchanged from the source commit above. The submission
+  envelope must bind this record to the resulting evidence-package commit.
+- Selected deployer/upgrader account: `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`.
+- Network boundary: GenLayer Studionet, chain ID `61999`; contract not deployed.
+
 ## Current local toolchain
 
 - Python 3.13.6
