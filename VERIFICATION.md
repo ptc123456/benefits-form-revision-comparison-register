@@ -53,3 +53,9 @@ The linter reports an informational newer-runner notice. The candidate remains p
 - https://docs.genlayer.com/developers/networks
 
 Studionet values used by the frontend follow the current network documentation: RPC `https://studio.genlayer.com/api`, chain ID `61999`, currency `GEN`. No deployment, signing, or live write has been performed by this build step.
+
+## PRE_DEPLOY account selection
+
+The accessible Studio account selected for the deployer/upgrader role is
+`0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`. It was selected in the current
+Studio session on 2026-08-30. No signature or transaction was sent.
