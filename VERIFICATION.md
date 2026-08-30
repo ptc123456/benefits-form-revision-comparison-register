@@ -2,15 +2,16 @@
 
 ## PRE_DEPLOY package identity
 
-- Checkpoint boundary: `PRE_DEPLOY` only. This record authorizes no deployment,
-  signature, contract write, GitHub push, or Vercel release.
+- Checkpoint boundary: PRE_DEPLOY approval was followed by the separately recorded
+  Studio deployment and POST_DEPLOY_TEST evidence below. No GitHub push or Vercel
+  release is included in this record.
 - Exact contract source commit under review: `48a123d49c3dae79dc17a669afed7a43eacfaba9`.
 - Exact contract source SHA-256: `5B2A195B900DBCB0027DF3B9674FEC74C2304AF877419EA8C32A37DC5F0566C6`.
 - The follow-up evidence-package commit contains verification metadata only; the
   contract source is unchanged from the source commit above. The submission
   envelope must bind this record to the resulting evidence-package commit.
 - Selected deployer-only account: `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`.
-- Network boundary: GenLayer Studionet, chain ID `61999`; contract not deployed.
+- Network boundary: GenLayer Studionet, chain ID `61999`.
 
 ## Draft deployment and recovery manifest
 
@@ -19,8 +20,10 @@
   `https://studio.genlayer.com/api`.
 - Constructor arguments: none (`__init__()` takes no arguments).
 - Intended deployer account: `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`.
-- Contract address: not yet created.
-- Deployment transaction: not yet created.
+- Contract address: `0x5E91f54956C62E6EDBEce49feA42282F16A0a962`.
+- Deployment transaction: `0xe74a1e9aadad476544a07d005ff498e0d432686df1f9226b44c0d04fb421f856`.
+- Explorer contract: https://explorer-studio.genlayer.com/address/0x5E91f54956C62E6EDBEce49feA42282F16A0a962
+- Explorer deployment: https://explorer-studio.genlayer.com/tx/0xe74a1e9aadad476544a07d005ff498e0d432686df1f9226b44c0d04fb421f856
 - Exact deployed source commit/hash: must remain `48a123d49c3dae79dc17a669afed7a43eacfaba9` /
   `5B2A195B900DBCB0027DF3B9674FEC74C2304AF877419EA8C32A37DC5F0566C6`.
 - Recovery boundary: if the Studio UI resets while chain state and the recorded
@@ -113,10 +116,36 @@ Retrieved at `2026-08-30T04:41:44+07:00` (Asia/Saigon); installed versions are r
 - https://docs.genlayer.com/api-references/genlayer-js
 - https://docs.genlayer.com/developers/networks
 
-Studionet values used by the frontend follow the current network documentation: RPC `https://studio.genlayer.com/api`, chain ID `61999`, currency `GEN`. No deployment, signing, or live write has been performed by this build step.
+Studionet values used by the frontend follow the current network documentation: RPC `https://studio.genlayer.com/api`, chain ID `61999`, currency `GEN`.
 
 ## PRE_DEPLOY account selection
 
 The accessible Studio account selected for the deployer-only role is
 `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`. It was selected in the current
-Studio session on 2026-08-30. No signature or transaction was sent.
+Studio session on 2026-08-30 and used for the deployment and live matrix below.
+
+## POST_DEPLOY_TEST live evidence
+
+- Studio: Codex in-app Browser, GenLayer Studionet, chain ID `61999`.
+- Deployment source parity: Explorer Contract > Code readback hashes to
+  `5B2A195B900DBCB0027DF3B9674FEC74C2304AF877419EA8C32A37DC5F0566C6`, matching
+  the exact source commit `48a123d49c3dae79dc17a669afed7a43eacfaba9`.
+- Deployment: `0xe74a1e9aadad476544a07d005ff498e0d432686df1f9226b44c0d04fb421f856`;
+  `FINALIZED`; execution `SUCCESS`; consensus reached; constructor input `{}`.
+- Case used for the matrix: `case-d00283bc4e94c6453ddd02435ac62de64f83184515b3b6a90bf04fedc960f642`.
+- Source pair used by `assess`:
+  `https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiYmVuZWZpdHMtZGVtbyIsInJldmlzaW9uX2lkIjoicmV2LW9sZC0wMDEiLCJyZXF1aXJlZF9maWVsZF9pZHMiOlsibmFtZSIsImFkZHJlc3MiXSwicmVxdWlyZWRfYXR0YWNobWVudF9pZHMiOlsiaWQiXSwiZGVhZGxpbmUiOiJOT05FIn0%3D`
+  and
+  `https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiYmVuZWZpdHMtZGVtbyIsInJldmlzaW9uX2lkIjoicmV2LW5ldy0wMDEiLCJyZXF1aXJlZF9maWVsZF9pZHMiOlsibmFtZSIsImFkZHJlc3MiLCJpbmNvbWUiXSwicmVxdWlyZWRfYXR0YWNobWVudF9pZHMiOlsiaWQiXSwiZGVhZGxpbmUiOiJOT05FIn0%3D`.
+
+| Row | Studio transaction | Expected and observed result | Finalized readback |
+|---|---|---|---|
+| LIVE-01 | `create_case(benefits-demo, old_url, new_url, e2e-20260830-01)`; `0x1c6634e4127250511fe774f74aeb436c69f53a45073d5b80337dc62994593784` | `FINALIZED`, `SUCCESS`, consensus reached | `state=DRAFT`, owner/assessor=`0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`, deterministic case ID above |
+| LIVE-02 | `freeze_case(case_id, rev-old-001, rev-new-001)`; `0x522d5778f2b68226641cd5050c465392f479776383157b2d4e73404509455df1` | `FINALIZED`, `SUCCESS`, consensus reached | `state=FROZEN`, frozen revisions exactly `rev-old-001` and `rev-new-001` |
+| LIVE-03 | `assess(case_id)`; `0x1d92e18c1a4eb413fcfda47fc2ee4f9fb2265db009e81ef686553f989b93f32b` | `FINALIZED`, `SUCCESS`, consensus reached; EP output `REQUIRED_FIELD_ADDED`, `statuses.old=200`, `statuses.new=200` | `state=ASSESSED`, outcome `REQUIRED_FIELD_ADDED`, `required_fields_added=[income]`, `evidence_digest=f4b4fc1443f543d3f003335f15797abf071906328976cc5c3f232b54eb8c1e19` |
+
+The matrix proves one complete critical journey: create a draft, freeze the
+revision identities, independently fetch both HTTPS JSON sources in consensus,
+record the single required-field addition, and confirm the resulting state from
+the finalized readback. No upgrade or replacement path was exercised because
+the contract is intentionally frozen.
