@@ -12,6 +12,22 @@
 - Selected deployer/upgrader account: `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`.
 - Network boundary: GenLayer Studionet, chain ID `61999`; contract not deployed.
 
+## Draft deployment and recovery manifest
+
+- Classification: `INTENTIONALLY FROZEN`; no upgrade method or upgrader authority.
+- Intended network: GenLayer Studionet, chain ID `61999`, RPC
+  `https://studio.genlayer.com/api`.
+- Constructor arguments: none (`__init__()` takes no arguments).
+- Intended deployer account: `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`.
+- Contract address: not yet created.
+- Deployment transaction: not yet created.
+- Exact deployed source commit/hash: must remain `48a123d49c3dae79dc17a669afed7a43eacfaba9` /
+  `5B2A195B900DBCB0027DF3B9674FEC74C2304AF877419EA8C32A37DC5F0566C6`.
+- Recovery boundary: if the Studio UI resets while chain state and the recorded
+  account remain available, import the recorded address and verify it. If the
+  account is lost or Studionet resets, deploy a replacement from the recorded
+  source and rerun the complete live matrix; the old address is not upgradeable.
+
 ## Current local toolchain
 
 - Python 3.13.6

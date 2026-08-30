@@ -4,6 +4,14 @@ A GenLayer `PROJECT` that compares two structured benefits-form revisions before
 
 The contract freezes the old/new source URLs, program identity, and expected revision IDs, then independently retrieves and normalizes both JSON sources through GenLayer nondeterminism. The stored result keeps separate sorted required-field and required-attachment additions/removals, deadline change, source revisions, and a canonical evidence digest. Each case uses a deterministic owner-plus-nonce identity, and the owner is the disclosed assessor for this MVP.
 
+## Deployment boundary
+
+This MVP is classified `INTENTIONALLY FROZEN`: it has no contract upgrade path. If
+a post-deployment defect is found, deploy a new contract from the recorded source
+and update the frontend/documentation; do not claim that the old address is
+recoverable through an upgrade. The selected Studio account is the deployer
+account for this deployment, not an upgrader authority.
+
 ## Source format
 
 ```json

@@ -10,6 +10,17 @@ The contract exposes deterministic owner-plus-nonce case IDs. `freeze_case` bind
 
 The frontend verifies the selected provider's current chain and account immediately before every write, performs operation-specific case readback, uses the deterministic case ID instead of global counter discovery, and exposes hash-based pending-transaction reconciliation after reload.
 
+## Deployment and recovery boundary
+
+This contract is deliberately `INTENTIONALLY FROZEN` because the approved MVP
+does not advertise code replacement, linked-contract migration, or an upgrade
+lifecycle. There is no `upgrade` method and no upgrader authority. A defect after
+deployment requires a replacement deployment from the recorded source commit,
+then a frontend/documentation address update and a fresh live test matrix. A
+Studio UI reset can be recovered by importing the recorded address while chain
+state remains; a lost account or Studionet reset cannot be repaired at that old
+address.
+
 ## Source contract shape
 
 Each source must be a JSON object with:
