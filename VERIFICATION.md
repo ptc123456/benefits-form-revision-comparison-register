@@ -9,7 +9,7 @@
 - The follow-up evidence-package commit contains verification metadata only; the
   contract source is unchanged from the source commit above. The submission
   envelope must bind this record to the resulting evidence-package commit.
-- Selected deployer/upgrader account: `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`.
+- Selected deployer-only account: `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`.
 - Network boundary: GenLayer Studionet, chain ID `61999`; contract not deployed.
 
 ## Draft deployment and recovery manifest
