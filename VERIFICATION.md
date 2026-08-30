@@ -117,6 +117,6 @@ Studionet values used by the frontend follow the current network documentation: 
 
 ## PRE_DEPLOY account selection
 
-The accessible Studio account selected for the deployer/upgrader role is
+The accessible Studio account selected for the deployer-only role is
 `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`. It was selected in the current
 Studio session on 2026-08-30. No signature or transaction was sent.
