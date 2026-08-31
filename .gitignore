@@ -6,5 +6,9 @@ artifacts/*
 frontend/node_modules/
 frontend/dist/
 frontend/.env
+.vercel/
 STAGE-1.md
 STAGE-2.md
+
+.vercel
+.env*

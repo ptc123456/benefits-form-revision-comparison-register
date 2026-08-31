@@ -24,6 +24,16 @@ and update the frontend/documentation; do not claim that the old address is
 recoverable through an upgrade. The selected Studio account is the deployer
 account for this deployment, not an upgrader authority.
 
+## Public release
+
+- GitHub: https://github.com/ptc123456/benefits-form-revision-comparison-register
+- Vercel production: https://benefits-form-revision-comparison-r.vercel.app
+- Vercel project: https://vercel.com/shingg/benefits-form-revision-comparison-register
+
+The production build is rooted at `frontend/` and uses the verified contract
+address through the Vercel Production environment variable
+`VITE_CONTRACT_ADDRESS`.
+
 ## Source format
 
 ```json

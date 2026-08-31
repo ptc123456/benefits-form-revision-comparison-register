@@ -149,3 +149,25 @@ revision identities, independently fetch both HTTPS JSON sources in consensus,
 record the single required-field addition, and confirm the resulting state from
 the finalized readback. No upgrade or replacement path was exercised because
 the contract is intentionally frozen.
+
+## GitHub and Vercel release evidence
+
+- GitHub repository: `https://github.com/ptc123456/benefits-form-revision-comparison-register`.
+- GitHub account used for the push: `ptc123456`; pushed branch: `master`; pushed
+  commit before this evidence update: `3c06d353917800bd7f63c28221e0272d2cebaf9`.
+- Vercel account/team: `phamthanhcong2006tb-9420` / `shingg`.
+- Vercel project: `benefits-form-revision-comparison-register`, project ID
+  `prj_06yvugMSHY6XMiNlpEDQg6HcqjPf`.
+- Production deployment: `dpl_94zwRmEWKqcUdpWcMRMBRRs2e7gV`;
+  `READY`; inspect URL
+  `https://vercel.com/shingg/benefits-form-revision-comparison-register/94zwRmEWKqcUdpWcMRMBRRs2e7gV`;
+  production alias `https://benefits-form-revision-comparison-r.vercel.app`.
+- The deployment was built from `frontend/`; `npm run typecheck` and
+  `npm run build` passed in the exact checkout. Production
+  `VITE_CONTRACT_ADDRESS` is the verified Studionet address
+  `0x5E91f54956C62E6EDBEce49feA42282F16A0a962`.
+- Codex in-app Browser smoke read the production alias successfully: the page
+  rendered the expected Formline heading, Studionet chain `61999`, register /
+  freeze / assess sections, and the signer remained explicitly disconnected.
+  No wallet transaction was submitted from the Vercel page in this smoke pass;
+  final user-wallet E2E remains a separate required checkpoint.
