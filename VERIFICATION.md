@@ -154,15 +154,15 @@ the contract is intentionally frozen.
 
 - GitHub repository: `https://github.com/ptc123456/benefits-form-revision-comparison-register`.
 - GitHub account used for the push: `ptc123456`; pushed branch: `master`; pushed
-  commit before this evidence update: `3c06d353917800bd7f63c28221e0272d2cebaf9`.
+  commit before this evidence update: `073206038d29c0008dcad60f51886dd3c398e859`.
 - Vercel account/team: `phamthanhcong2006tb-9420` / `shingg`.
 - Vercel project: `benefits-form-revision-comparison-register`, project ID
   `prj_06yvugMSHY6XMiNlpEDQg6HcqjPf`.
 - GitHub repository is connected to this Vercel project for commit-triggered
   deployments.
-- Production deployment: `dpl_BafYkmXw6fXxm8i1vr5WcXEQWdp8`;
+- Production deployment: `dpl_AQpfLDa8KNdsB3mqVEQmQzydjCgn`;
   `READY`; inspect URL
-  `https://vercel.com/shingg/benefits-form-revision-comparison-register/BafYkmXw6fXxm8i1vr5WcXEQWdp8`;
+  `https://vercel.com/shingg/benefits-form-revision-comparison-register/dvkyqi0w3`;
   production alias `https://benefits-form-revision-comparison-r.vercel.app`.
 - The deployment was built from `frontend/`; `npm run typecheck` and
   `npm run build` passed in the exact checkout. Production
