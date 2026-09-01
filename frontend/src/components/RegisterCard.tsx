@@ -52,14 +52,14 @@ export function RegisterCard({
   const loadPreset = (presetType: "field_added" | "deadline_change" | "attachments") => {
     onProgramIdChange("BENEFITS-2026");
     if (presetType === "field_added") {
-      onOldUrlChange("https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/examples/benefits-r1.json");
-      onNewUrlChange("https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/examples/benefits-r2.json");
+      onOldUrlChange("https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiZmllbGRzLXYxIiwicmVxdWlyZWRfZmllbGRfaWRzIjpbIm5hbWUiLCJhZGRyZXNzIl0sInJlcXVpcmVkX2F0dGFjaG1lbnRfaWRzIjpbImlkIl0sImRlYWRsaW5lIjoiTk9ORSJ9");
+      onNewUrlChange("https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiZmllbGRzLXYyIiwicmVxdWlyZWRfZmllbGRfaWRzIjpbIm5hbWUiLCJhZGRyZXNzIiwiaW5jb21lIl0sInJlcXVpcmVkX2F0dGFjaG1lbnRfaWRzIjpbImlkIl0sImRlYWRsaW5lIjoiTk9ORSJ9");
     } else if (presetType === "deadline_change") {
-      onOldUrlChange("https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/examples/snap-2025.json");
-      onNewUrlChange("https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/examples/snap-2026.json");
+      onOldUrlChange("https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiZGVhZGxpbmUtdjEiLCJyZXF1aXJlZF9maWVsZF9pZHMiOlsibmFtZSIsImluY29tZSJdLCJyZXF1aXJlZF9hdHRhY2htZW50X2lkcyI6WyJpZCJdLCJkZWFkbGluZSI6IjIwMjYtMDQtMTUifQ%3D%3D");
+      onNewUrlChange("https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiZGVhZGxpbmUtdjIiLCJyZXF1aXJlZF9maWVsZF9pZHMiOlsibmFtZSIsImluY29tZSJdLCJyZXF1aXJlZF9hdHRhY2htZW50X2lkcyI6WyJpZCJdLCJkZWFkbGluZSI6IjIwMjYtMDYtMzAifQ%3D%3D");
     } else {
-      onOldUrlChange("https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/examples/housing-v1.json");
-      onNewUrlChange("https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/examples/housing-v2.json");
+      onOldUrlChange("https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiYXR0YWNobWVudHMtdjEiLCJyZXF1aXJlZF9maWVsZF9pZHMiOlsibmFtZSIsImluY29tZSJdLCJyZXF1aXJlZF9hdHRhY2htZW50X2lkcyI6WyJpZC1wcm9vZiJdLCJkZWFkbGluZSI6Ik5PTkUifQ%3D%3D");
+      onNewUrlChange("https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiYXR0YWNobWVudHMtdjIiLCJyZXF1aXJlZF9maWVsZF9pZHMiOlsibmFtZSIsImluY29tZSJdLCJyZXF1aXJlZF9hdHRhY2htZW50X2lkcyI6WyJpZC1wcm9vZiIsInRheC1yZXR1cm4tMjAyNiJdLCJkZWFkbGluZSI6Ik5PTkUifQ%3D%3D");
     }
   };
 
