@@ -153,7 +153,9 @@ async function write(address: string, provider: Eip1193Provider, functionName: s
   writeInFlight = true;
   const client = writeClient(address, provider);
   try {
-    await client.connect("studionet");
+    // Network selection is completed by the explicit wallet connection flow;
+    // verify the selected provider directly before signing to avoid optional
+    // wallet helpers that are not implemented by every supported extension.
     await verifyCurrentSession(address, provider);
     const hash = await client.writeContract({ address: requireAddress(), functionName, args, value: BigInt(0) }) as TxHash;
     volatilePendingHash = hash;
@@ -212,7 +214,6 @@ export async function reconcilePending(address: string, provider: Eip1193Provide
   if (!pending) throw new Error("No valid pending transaction journal was found.");
   const client = writeClient(address, provider);
   try {
-    await client.connect("studionet");
     await verifyCurrentSession(address, provider);
     const terminal = await waitForVerifiedWrite(client, pending.hash);
     const finalized = terminal.status === String(TransactionStatus.FINALIZED).toUpperCase();
