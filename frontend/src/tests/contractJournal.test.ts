@@ -68,6 +68,25 @@ describe("pending transaction reconciliation", () => {
     expect(client.readContract).not.toHaveBeenCalled();
   });
 
+  it("accepts the current Studionet validator receipt shape", async () => {
+    sessionStorage.setItem("formline.pending", JSON.stringify({ hash: HASH, functionName: "create_case", caseId: "case-1", owner: OWNER, programId: "benefits-demo" }));
+    client.getTransaction.mockResolvedValue({
+      statusName: "FINALIZED",
+      result_name: "MAJORITY_AGREE",
+      consensus_data: { validators: [{ execution_result: "SUCCESS", result: "encoded-return" }] },
+    });
+
+    const result = await reconcilePending(OWNER, provider, {
+      case_id: "case-1",
+      owner: OWNER,
+      state: "DRAFT",
+      program_id: "benefits-demo",
+    } as never);
+
+    expect(result).toMatchObject({ verified: true, status: "FINALIZED" });
+    expect(hasPendingJournal()).toBe(false);
+  });
+
   it("retries an empty case readback before returning the authoritative record", async () => {
     client.readContract.mockResolvedValueOnce("").mockResolvedValueOnce(JSON.stringify({ case_id: "case-1", owner: OWNER, state: "FROZEN" }));
 

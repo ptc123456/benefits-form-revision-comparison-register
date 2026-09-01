@@ -128,12 +128,21 @@ async function waitForVerifiedWrite(client: AnyClient, hash: TxHash): Promise<Wr
     const status = String((transaction as { statusName?: string; status?: string }).statusName ?? transaction.status ?? "").toUpperCase();
     const typed = transaction as {
       txExecutionResultName?: string;
-      consensus_data?: { leader_receipt?: Array<{ mode?: string; execution_result?: string; result?: { status?: string } }> };
+      result_name?: string;
+      consensus_data?: {
+        leader_receipt?: Array<{ mode?: string; execution_result?: string; result?: { status?: string } }>;
+        validators?: Array<{ execution_result?: string; result?: { status?: string } | string }>;
+      };
     };
     const leader = typed.consensus_data?.leader_receipt?.find((receipt) => receipt.mode === "leader");
+    const successfulValidator = typed.consensus_data?.validators?.some((validator) => validator.execution_result === "SUCCESS");
     const execution = String(
       typed.txExecutionResultName ??
-      (leader?.execution_result === "SUCCESS" && leader.result?.status === "return" ? ExecutionResult.FINISHED_WITH_RETURN : ""),
+      (leader?.execution_result === "SUCCESS" && leader.result?.status === "return"
+        ? ExecutionResult.FINISHED_WITH_RETURN
+        : typed.result_name === "MAJORITY_AGREE" && successfulValidator
+        ? ExecutionResult.FINISHED_WITH_RETURN
+        : ""),
     ).toUpperCase();
     if (status === String(TransactionStatus.FINALIZED).toUpperCase()) return { status, execution };
     if (status === "UNDETERMINED" || status === "CANCELED") return { status, execution };
