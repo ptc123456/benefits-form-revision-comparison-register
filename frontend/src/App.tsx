@@ -311,6 +311,10 @@ export function App() {
         if (fetched.frozen_new_revision_id) setNewRevisionId(fetched.frozen_new_revision_id);
       }
       setCaseCount(await readCaseCount());
+      if (hasPendingJournal()) {
+        setPending(true);
+        setNotice("A submitted transaction still needs reconciliation before another action.");
+      }
     } catch (cause) {
       setError(userErrorMessage(cause));
     }
