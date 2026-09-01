@@ -154,22 +154,54 @@ the contract is intentionally frozen.
 
 - GitHub repository: `https://github.com/ptc123456/benefits-form-revision-comparison-register`.
 - GitHub account used for the push: `ptc123456`; pushed branch: `master`; pushed
-  commit used by the cited Vercel deployment: `9103ed7c2cb178351b1ef2643cdc229757035513`.
+  commit used by the cited Vercel deployment: `68ab1ced662aa595f4eadfc3459435c21176631e`.
 - Vercel account/team: `phamthanhcong2006tb-9420` / `shingg`.
 - Vercel project: `benefits-form-revision-comparison-register`, project ID
   `prj_06yvugMSHY6XMiNlpEDQg6HcqjPf`.
 - GitHub repository is connected to this Vercel project for commit-triggered
   deployments.
-- Production deployment: `dpl_DDbacoHhLyeVhTDD7UzYuzrPAzkk`;
+- Production deployment: `dpl_Gqn87FvUVGJ54j4tvp2FeJwgZT4V`;
   `READY`; inspect URL
-  `https://benefits-form-revision-comparison-register-71e67154y-shingg.vercel.app`;
+  `https://benefits-form-revision-comparison-register-ei62lduks-shingg.vercel.app`;
   production alias `https://benefits-form-revision-comparison-r.vercel.app`.
-- The deployment was built from `frontend/`; `npm run typecheck` and
-  `npm run build` passed in the exact checkout. Production
+- The deployment was built from `frontend/`; install command was
+  `npm --prefix frontend ci`, build command was `npm --prefix frontend run build`,
+  output directory was `frontend/dist`, and Node.js was `24.x`. `npm run typecheck`
+  and `npm run build` passed in the exact checkout. Production
   `VITE_CONTRACT_ADDRESS` is the verified Studionet address
   `0x5E91f54956C62E6EDBEce49feA42282F16A0a962`.
-- Codex in-app Browser smoke read the production alias successfully: the page
-  rendered the expected Formline heading, Studionet chain `61999`, register /
-  freeze / assess sections, and the signer remained explicitly disconnected.
-  No wallet transaction was submitted from the Vercel page in this smoke pass;
-  final user-wallet E2E remains a separate required checkpoint.
+- The exact immutable Vercel release rendered the expected Formline heading,
+  Studionet environment, register / freeze / assess sections, and verified
+  contract address in Codex Chrome. The production alias resolves the same
+  release lineage.
+
+## POST_GITHUB_VERCEL_FINAL live wallet E2E
+
+- Exact release under test: Vercel deployment
+  `dpl_Gqn87FvUVGJ54j4tvp2FeJwgZT4V`, immutable URL
+  `https://benefits-form-revision-comparison-register-ei62lduks-shingg.vercel.app`,
+  production alias `https://benefits-form-revision-comparison-r.vercel.app`,
+  GitHub `master` commit
+  `68ab1ced662aa595f4eadfc3459435c21176631e`.
+- Wallet/account evidence: Codex Chrome opened the public wallet picker;
+  OKX Wallet was explicitly selected from the available choices. The connected
+  signer was `0x896Ef52d620eA3CCdA34B4E72a8E197974e4e39E` on GenLayer Studionet
+  chain `61999`. No provider internals or technical routing details are shown
+  in the public UI.
+- Case used for the exact release journey:
+  `case-f25e955488b33ad268ed2bdc0490d76aec9bdb897b8754a7caff9708fea67ba6`;
+  owner and program readback matched the connected signer and `benefits-demo`.
+
+| Row | Vercel journey transaction | Verified result and authoritative readback |
+|---|---|---|
+| VERCEL-01 | `create_case(benefits-demo, old_url, new_url, df0e8a50aae84f92a447328ffe87e078)`; `0x0b663c7ac4973d52fb56393bb74f423d15f0f2ecdc1c7a6be2ee4f14d52d1c68` | `FINALIZED`, `MAJORITY_AGREE`, agreeing validators `SUCCESS`; deterministic case readback `state=DRAFT`, owner matched. Initial delayed JSON visibility was recovered by explicit Read State and verified reconciliation without resubmission. |
+| VERCEL-02 | `freeze_case(case_id, rev-old-001, rev-new-001)`; `0xac23a64a0288a86ef63a819e951cc5f3094853a1a6544e4aef3425fd723a81fa` | `FINALIZED`, `MAJORITY_AGREE`, 4 agreeing validator executions `SUCCESS`; authoritative readback `state=FROZEN` with both frozen revision IDs exact. |
+| VERCEL-03 | `assess(case_id)`; `0x04761d7df448cff0f79bea74b2001d26d2f417ded8b7fcaf18d5a5a4a40bed28` | `FINALIZED`, `MAJORITY_AGREE`, 2 agreeing validator executions `SUCCESS`; authoritative readback `state=ASSESSED`, outcome `REQUIRED_FIELD_ADDED`, `required_fields_added=[income]`, `statuses.old=200`, `statuses.new=200`, digest `f4b4fc1443f543d3f003335f15797abf071906328976cc5c3f232b54eb8c1e19`. |
+
+- Wallet lifecycle regression on the same exact release passed: explicit
+  disconnect returned the header to `Connect wallet`; reload reset the wallet
+  to disconnected without auto-reconnect or auto-read; the picker was reopened,
+  OKX was explicitly selected, reconnect succeeded, and the exact case was
+  read back again as `ASSESSED` with the same outcome, field, statuses, and
+  evidence digest. No additional write transaction was created during this
+  regression.
