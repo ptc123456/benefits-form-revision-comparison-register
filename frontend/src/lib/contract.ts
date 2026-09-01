@@ -2,6 +2,7 @@ import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 import { ExecutionResult, TransactionStatus } from "genlayer-js/types";
 import type { Eip1193Provider } from "./walletProviders";
+import { userErrorMessage } from "./userErrors";
 
 export type CaseRecord = {
   case_id: string;
@@ -170,7 +171,7 @@ async function write(address: string, provider: Eip1193Provider, functionName: s
   } catch (error) {
     const hash = volatilePendingHash;
     if (!hash) writeInFlight = false;
-    throw new Error(`${error instanceof Error ? error.message : String(error)}${hash ? ` Hash: ${hash}` : ""}`);
+    throw new Error(`${userErrorMessage(error)}${hash ? ` Hash: ${hash}` : ""}`);
   }
 }
 
@@ -235,6 +236,6 @@ export async function reconcilePending(address: string, provider: Eip1193Provide
     writeInFlight = false;
     return { hash: pending.hash, caseId: pending.caseId, functionName: pending.functionName, status: terminal.status, verified: true };
   } catch (error) {
-    throw new Error(`${error instanceof Error ? error.message : String(error)} Hash: ${pending.hash}`);
+    throw new Error(`${userErrorMessage(error)} Hash: ${pending.hash}`);
   }
 }

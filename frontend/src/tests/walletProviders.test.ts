@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { connectProvider, discoverWalletProviders } from "../lib/walletProviders";
+import { userErrorMessage } from "../lib/userErrors";
 
 describe("wallet discovery", () => {
   it("requests EIP-6963 announcements and deduplicates by wallet identity", async () => {
@@ -21,5 +22,10 @@ describe("wallet discovery", () => {
   it("turns a rejected wallet request into an actionable user message", async () => {
     const request = vi.fn(async () => { throw { code: 4001, message: "User denied request" }; });
     await expect(connectProvider({ info: { uuid: "meta", name: "MetaMask", rdns: "io.metamask" }, provider: { request } })).rejects.toThrow("Wallet connection was cancelled");
+  });
+
+  it("formats object-shaped SDK errors without exposing object coercion", () => {
+    expect(userErrorMessage({ error: { reason: "The selected wallet is unavailable." } })).toBe("The selected wallet is unavailable.");
+    expect(userErrorMessage({ unexpected: true })).toBe("The request could not be completed. Try again.");
   });
 });

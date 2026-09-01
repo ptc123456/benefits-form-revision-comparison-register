@@ -20,6 +20,7 @@ import {
   discoverWalletProviders,
   type WalletProvider,
 } from "./lib/walletProviders";
+import { userErrorMessage } from "./lib/userErrors";
 
 const emptyCase: CaseRecord = {
   case_id: "",
@@ -173,7 +174,7 @@ export function App() {
       setAddress(connectedAddress);
       setNotice(`Connected with ${selected.info.name} on Studionet.`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(userErrorMessage(cause));
     } finally {
       setIsConnecting(false);
     }
@@ -206,7 +207,7 @@ export function App() {
           : `${label} completed and read back successfully.`
       );
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : String(cause);
+      const message = userErrorMessage(cause);
       const hash = message.match(/Hash:\s(0x[a-fA-F0-9]{64})/)?.[1];
       if (hash) setTxHash(hash);
       setPending(hasPendingJournal());
@@ -293,7 +294,7 @@ export function App() {
       }
     } catch (cause) {
       setPending(hasPendingJournal());
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(userErrorMessage(cause));
     } finally {
       setBusy("");
     }
@@ -311,7 +312,7 @@ export function App() {
       }
       setCaseCount(await readCaseCount());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(userErrorMessage(cause));
     }
   }
 
