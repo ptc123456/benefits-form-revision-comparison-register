@@ -1,6 +1,6 @@
 import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
-import { ExecutionResult, TransactionStatus } from "genlayer-js/types";
+import { ExecutionResult, TransactionHashVariant, TransactionStatus } from "genlayer-js/types";
 import type { Eip1193Provider } from "./walletProviders";
 import { userErrorMessage } from "./userErrors";
 
@@ -67,7 +67,12 @@ export async function readCase(caseId: string): Promise<CaseRecord> {
   const retryDelaysMs = [1500, 3000, 6000, 9000];
   for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
     try {
-      const result = await readClient.readContract({ address: requireAddress(), functionName: "get_case", args: [caseId] });
+      const result = await readClient.readContract({
+        address: requireAddress(),
+        functionName: "get_case",
+        args: [caseId],
+        transactionHashVariant: TransactionHashVariant.LATEST_FINAL,
+      });
       return parseCase(result);
     } catch (error) {
       lastError = error;

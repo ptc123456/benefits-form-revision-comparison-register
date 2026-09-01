@@ -10,6 +10,11 @@ const { client } = vi.hoisted(() => ({
 
 vi.mock("genlayer-js", () => ({ createClient: vi.fn(() => client) }));
 vi.mock("genlayer-js/chains", () => ({ studionet: {} }));
+vi.mock("genlayer-js/types", () => ({
+  ExecutionResult: { FINISHED_WITH_RETURN: "FINISHED_WITH_RETURN" },
+  TransactionHashVariant: { LATEST_FINAL: "latest-final" },
+  TransactionStatus: { FINALIZED: "FINALIZED" },
+}));
 
 vi.stubEnv("VITE_CONTRACT_ADDRESS", "0x2222222222222222222222222222222222222222");
 const { hasPendingJournal, readCase, reconcilePending } = await import("../lib/contract");
@@ -52,6 +57,7 @@ describe("pending transaction reconciliation", () => {
 
     await expect(readCase("case-1")).resolves.toMatchObject({ case_id: "case-1", state: "FROZEN" });
     expect(client.readContract).toHaveBeenCalledTimes(2);
+    expect(client.readContract).toHaveBeenLastCalledWith(expect.objectContaining({ transactionHashVariant: "latest-final" }));
   });
 
   it("keeps bounded retrying through delayed post-finality visibility", async () => {
