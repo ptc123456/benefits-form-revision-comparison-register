@@ -125,7 +125,7 @@ export function App() {
     }
   }, []);
 
-  // Listen to provider events (accountsChanged, chainChanged)
+  // Listen to provider events (accountsChanged, chainChanged, disconnect)
   useEffect(() => {
     if (!wallet?.provider.on) return;
     const onAccounts = (...args: unknown[]) => {
@@ -140,30 +140,38 @@ export function App() {
       setAddress("");
       setError("Network changed. Reconnect your selected wallet on GenLayer Studionet.");
     };
+    const onDisconnect = () => {
+      setAddress("");
+      setNotice("Wallet disconnected. Choose a wallet to reconnect.");
+    };
     wallet.provider.on("accountsChanged", onAccounts);
     wallet.provider.on("chainChanged", onChain);
+    wallet.provider.on("disconnect", onDisconnect);
     return () => {
       wallet.provider.removeListener?.("accountsChanged", onAccounts);
       wallet.provider.removeListener?.("chainChanged", onChain);
+      wallet.provider.removeListener?.("disconnect", onDisconnect);
     };
   }, [wallet]);
 
   // Connect action
-  const connect = async () => {
+  const connect = async (chosenWallet?: WalletProvider) => {
     setError("");
     if (!wallets.length) {
       setError("No supported wallet was found. Install MetaMask, OKX Wallet, or Rabby, then reload.");
       return;
     }
-    if (!wallet) {
-      setError("Select a wallet provider first.");
+    const selected = chosenWallet || wallet;
+    if (!selected) {
+      setError("Choose a wallet to continue.");
       return;
     }
     setIsConnecting(true);
     try {
-      const connectedAddress = await connectProvider(wallet);
+      const connectedAddress = await connectProvider(selected);
+      setWallet(selected);
       setAddress(connectedAddress);
-      setNotice(`Connected with ${wallet.info.name} on Studionet.`);
+      setNotice(`Connected with ${selected.info.name} on Studionet.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -318,6 +326,7 @@ export function App() {
         onSelectWallet={setWallet}
         address={address}
         onConnect={connect}
+        connectionError={error}
         onDisconnect={disconnect}
         isConnecting={isConnecting}
         caseCount={caseCount}
