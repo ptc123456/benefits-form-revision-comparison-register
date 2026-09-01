@@ -189,9 +189,20 @@ the contract is intentionally frozen.
   `program_id`, a distinct `revision_id`, `required_field_ids`,
   `required_attachment_ids`, and `deadline`; each pair uses matching
   `program_id=BENEFITS-2026`.
+- Exact endpoint receipts:
+  - Field Addition old: `https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiZmllbGRzLXYxIiwicmVxdWlyZWRfZmllbGRfaWRzIjpbIm5hbWUiLCJhZGRyZXNzIl0sInJlcXVpcmVkX2F0dGFjaG1lbnRfaWRzIjpbImlkIl0sImRlYWRsaW5lIjoiTk9ORSJ9` → HTTP `200`, `revision_id=fields-v1`.
+  - Field Addition new: `https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiZmllbGRzLXYyIiwicmVxdWlyZWRfZmllbGRfaWRzIjpbIm5hbWUiLCJhZGRyZXNzIiwiaW5jb21lIl0sInJlcXVpcmVkX2F0dGFjaG1lbnRfaWRzIjpbImlkIl0sImRlYWRsaW5lIjoiTk9ORSJ9` → HTTP `200`, `revision_id=fields-v2`.
+  - Deadline Shift old: `https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiZGVhZGxpbmUtdjEiLCJyZXF1aXJlZF9maWVsZF9pZHMiOlsibmFtZSIsImluY29tZSJdLCJyZXF1aXJlZF9hdHRhY2htZW50X2lkcyI6WyJpZCJdLCJkZWFkbGluZSI6IjIwMjYtMDQtMTUifQ%3D%3D` → HTTP `200`, `revision_id=deadline-v1`.
+  - Deadline Shift new: `https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiZGVhZGxpbmUtdjIiLCJyZXF1aXJlZF9maWVsZF9pZHMiOlsibmFtZSIsImluY29tZSJdLCJyZXF1aXJlZF9hdHRhY2htZW50X2lkcyI6WyJpZCJdLCJkZWFkbGluZSI6IjIwMjYtMDYtMzAifQ%3D%3D` → HTTP `200`, `revision_id=deadline-v2`.
+  - Attachment Set old: `https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiYXR0YWNobWVudHMtdjEiLCJyZXF1aXJlZF9maWVsZF9pZHMiOlsibmFtZSIsImluY29tZSJdLCJyZXF1aXJlZF9hdHRhY2htZW50X2lkcyI6WyJpZC1wcm9vZiJdLCJkZWFkbGluZSI6Ik5PTkUifQ%3D%3D` → HTTP `200`, `revision_id=attachments-v1`.
+  - Attachment Set new: `https://httpbin.org/base64/eyJwcm9ncmFtX2lkIjoiQkVORUZJVFMtMjAyNiIsInJldmlzaW9uX2lkIjoiYXR0YWNobWVudHMtdjIiLCJyZXF1aXJlZF9maWVsZF9pZHMiOlsibmFtZSIsImluY29tZSJdLCJyZXF1aXJlZF9hdHRhY2htZW50X2lkcyI6WyJpZC1wcm9vZiIsInRheC1yZXR1cm4tMjAyNiJdLCJkZWFkbGluZSI6Ik5PTkUifQ%3D%3D` → HTTP `200`, `revision_id=attachments-v2`.
 - Preset pairs verified: Field Addition (`fields-v1` → `fields-v2`), Deadline
   Change (`deadline-v1` → `deadline-v2`), and Attachments
   (`attachments-v1` → `attachments-v2`).
+- Chrome smoke on the exact corrected release opened `Example Presets` and
+  selected all three buttons; each populated `BENEFITS-2026` plus two distinct
+  `https://httpbin.org/base64/` endpoints. No wallet connection or transaction
+  was required for this verification.
 - Local regression after the correction: 14 frontend tests passed, typecheck
   passed, production build passed, and `git diff --check` passed. No contract
   deployment or transaction was created for this frontend-only correction.
