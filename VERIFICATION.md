@@ -160,9 +160,9 @@ the contract is intentionally frozen.
   `prj_06yvugMSHY6XMiNlpEDQg6HcqjPf`.
 - GitHub repository is connected to this Vercel project for commit-triggered
   deployments.
-- Production deployment: `dpl_Gqn87FvUVGJ54j4tvp2FeJwgZT4V`;
+- Production deployment: `dpl_DT8S5K1oU9p25RUXUhXukgREKgfJ`;
   `READY`; inspect URL
-  `https://benefits-form-revision-comparison-register-ei62lduks-shingg.vercel.app`;
+  `https://benefits-form-revision-comparison-register-bxvtemjz3-shingg.vercel.app`;
   production alias `https://benefits-form-revision-comparison-r.vercel.app`.
 - The deployment was built from `frontend/`; install command was
   `npm --prefix frontend ci`, build command was `npm --prefix frontend run build`,
@@ -178,8 +178,8 @@ the contract is intentionally frozen.
 ## POST_GITHUB_VERCEL_FINAL live wallet E2E
 
 - Exact release under test: Vercel deployment
-  `dpl_Gqn87FvUVGJ54j4tvp2FeJwgZT4V`, immutable URL
-  `https://benefits-form-revision-comparison-register-ei62lduks-shingg.vercel.app`,
+  `dpl_DT8S5K1oU9p25RUXUhXukgREKgfJ`, immutable URL
+  `https://benefits-form-revision-comparison-register-bxvtemjz3-shingg.vercel.app`,
   production alias `https://benefits-form-revision-comparison-r.vercel.app`,
   GitHub `master` commit
   `68ab1ced662aa595f4eadfc3459435c21176631e`.
