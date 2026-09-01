@@ -154,7 +154,7 @@ the contract is intentionally frozen.
 
 - GitHub repository: `https://github.com/ptc123456/benefits-form-revision-comparison-register`.
 - GitHub account used for the push: `ptc123456`; pushed branch: `master`; pushed
-  commit used by the cited Vercel deployment: `68ab1ced662aa595f4eadfc3459435c21176631e`.
+  commit used by the cited Vercel deployment: `666a42905482c0c32d701306c6e2367d5a23953d`.
 - Vercel account/team: `phamthanhcong2006tb-9420` / `shingg`.
 - Vercel project: `benefits-form-revision-comparison-register`, project ID
   `prj_06yvugMSHY6XMiNlpEDQg6HcqjPf`.
@@ -182,7 +182,7 @@ the contract is intentionally frozen.
   `https://benefits-form-revision-comparison-register-bxvtemjz3-shingg.vercel.app`,
   production alias `https://benefits-form-revision-comparison-r.vercel.app`,
   GitHub `master` commit
-  `68ab1ced662aa595f4eadfc3459435c21176631e`.
+  `666a42905482c0c32d701306c6e2367d5a23953d`.
 - Wallet/account evidence: Codex Chrome opened the public wallet picker;
   OKX Wallet was explicitly selected from the available choices. The connected
   signer was `0x896Ef52d620eA3CCdA34B4E72a8E197974e4e39E` on GenLayer Studionet
