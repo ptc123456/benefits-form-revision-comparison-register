@@ -154,15 +154,15 @@ the contract is intentionally frozen.
 
 - GitHub repository: `https://github.com/ptc123456/benefits-form-revision-comparison-register`.
 - GitHub account used for the push: `ptc123456`; pushed branch: `master`; pushed
-  commit used by the cited Vercel deployment: `666a42905482c0c32d701306c6e2367d5a23953d`.
+  commit used by the cited Vercel deployment: `2345ea48870675381bb6ba95c887c1e7019fb3a1`.
 - Vercel account/team: `phamthanhcong2006tb-9420` / `shingg`.
 - Vercel project: `benefits-form-revision-comparison-register`, project ID
   `prj_06yvugMSHY6XMiNlpEDQg6HcqjPf`.
 - GitHub repository is connected to this Vercel project for commit-triggered
   deployments.
-- Production deployment: `dpl_DT8S5K1oU9p25RUXUhXukgREKgfJ`;
+- Production deployment: `dpl_G7StffS2S5puGWYSVdZy1m4eNRi2`;
   `READY`; inspect URL
-  `https://benefits-form-revision-comparison-register-bxvtemjz3-shingg.vercel.app`;
+  `https://benefits-form-revision-comparison-register-4r3nx0d10-shingg.vercel.app`;
   production alias `https://benefits-form-revision-comparison-r.vercel.app`.
 - The deployment was built from `frontend/`; install command was
   `npm --prefix frontend ci`, build command was `npm --prefix frontend run build`,
@@ -174,6 +174,27 @@ the contract is intentionally frozen.
   Studionet environment, register / freeze / assess sections, and verified
   contract address in Codex Chrome. The production alias resolves the same
   release lineage.
+
+## EXPLORER_PRE_SUBMISSION preset remediation
+
+- Correction commit: `2345ea48870675381bb6ba95c887c1e7019fb3a1`; contract source
+  remained unchanged at commit `48a123d49c3dae79dc17a669afed7a43eacfaba9` and
+  SHA-256 `5B2A195B900DBCB0027DF3B9674FEC74C2304AF877419EA8C32A37DC5F0566C6`.
+- Corrected release: Vercel deployment `dpl_G7StffS2S5puGWYSVdZy1m4eNRi2`,
+  `READY`, production, immutable URL
+  `https://benefits-form-revision-comparison-register-4r3nx0d10-shingg.vercel.app`;
+  production alias `https://benefits-form-revision-comparison-r.vercel.app`.
+- All six Example Preset endpoints on the corrected release were independently
+  checked and returned HTTP `200`. Each response parsed as JSON and contained
+  `program_id`, a distinct `revision_id`, `required_field_ids`,
+  `required_attachment_ids`, and `deadline`; each pair uses matching
+  `program_id=BENEFITS-2026`.
+- Preset pairs verified: Field Addition (`fields-v1` → `fields-v2`), Deadline
+  Change (`deadline-v1` → `deadline-v2`), and Attachments
+  (`attachments-v1` → `attachments-v2`).
+- Local regression after the correction: 14 frontend tests passed, typecheck
+  passed, production build passed, and `git diff --check` passed. No contract
+  deployment or transaction was created for this frontend-only correction.
 
 ## POST_GITHUB_VERCEL_FINAL live wallet E2E
 
