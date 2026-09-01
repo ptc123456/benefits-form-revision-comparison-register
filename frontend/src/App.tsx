@@ -276,7 +276,8 @@ export function App() {
     setError("");
     setNotice("");
     try {
-      const result = await reconcilePending(address, wallet.provider);
+      const knownRecord = record.case_id === caseId && record.state ? record : undefined;
+      const result = await reconcilePending(address, wallet.provider, knownRecord);
       setTxHash(result.hash);
       setPending(false);
       if (result.verified) {

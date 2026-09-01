@@ -52,6 +52,22 @@ describe("pending transaction reconciliation", () => {
     expect(hasPendingJournal()).toBe(true);
   });
 
+  it("clears a finalized pending write from a known authoritative readback", async () => {
+    sessionStorage.setItem("formline.pending", JSON.stringify({ hash: HASH, functionName: "create_case", caseId: "case-1", owner: OWNER, programId: "benefits-demo" }));
+    client.getTransaction.mockResolvedValue({ statusName: "FINALIZED", txExecutionResultName: "FINISHED_WITH_RETURN" });
+
+    const result = await reconcilePending(OWNER, provider, {
+      case_id: "case-1",
+      owner: OWNER,
+      state: "DRAFT",
+      program_id: "benefits-demo",
+    } as never);
+
+    expect(result).toMatchObject({ hash: HASH, functionName: "create_case", verified: true });
+    expect(hasPendingJournal()).toBe(false);
+    expect(client.readContract).not.toHaveBeenCalled();
+  });
+
   it("retries an empty case readback before returning the authoritative record", async () => {
     client.readContract.mockResolvedValueOnce("").mockResolvedValueOnce(JSON.stringify({ case_id: "case-1", owner: OWNER, state: "FROZEN" }));
 

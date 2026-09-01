@@ -225,7 +225,7 @@ function pendingJournal(): PendingJournal | null {
 
 export function hasPendingJournal(): boolean { return pendingJournal() !== null; }
 
-export async function reconcilePending(address: string, provider: Eip1193Provider): Promise<{ hash: string; caseId: string; functionName: string; status: string; verified: boolean }> {
+export async function reconcilePending(address: string, provider: Eip1193Provider, knownRecord?: CaseRecord): Promise<{ hash: string; caseId: string; functionName: string; status: string; verified: boolean }> {
   const pending = pendingJournal();
   if (!pending) throw new Error("No valid pending transaction journal was found.");
   const client = writeClient(address, provider);
@@ -238,7 +238,10 @@ export async function reconcilePending(address: string, provider: Eip1193Provide
       rememberFailedTransaction(pending, terminal);
       return { hash: pending.hash, caseId: pending.caseId, functionName: pending.functionName, status: terminal.status, verified: false };
     }
-    assertCase(await readCase(pending.caseId), {
+    const record = knownRecord?.case_id === pending.caseId && knownRecord.state
+      ? knownRecord
+      : await readCase(pending.caseId);
+    assertCase(record, {
       caseId: pending.caseId,
       owner: address,
       state: pending.functionName === "create_case" ? "DRAFT" : pending.functionName === "freeze_case" ? "FROZEN" : ["ASSESSED", "UNRESOLVED"],
