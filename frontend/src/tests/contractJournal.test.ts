@@ -12,7 +12,7 @@ vi.mock("genlayer-js", () => ({ createClient: vi.fn(() => client) }));
 vi.mock("genlayer-js/chains", () => ({ studionet: {} }));
 
 vi.stubEnv("VITE_CONTRACT_ADDRESS", "0x2222222222222222222222222222222222222222");
-const { hasPendingJournal, reconcilePending } = await import("../lib/contract");
+const { hasPendingJournal, readCase, reconcilePending } = await import("../lib/contract");
 
 const OWNER = "0x1111111111111111111111111111111111111111";
 const HASH = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -45,5 +45,12 @@ describe("pending transaction reconciliation", () => {
 
     await expect(reconcilePending(OWNER, provider)).rejects.toThrow("expected ASSESSED or UNRESOLVED");
     expect(hasPendingJournal()).toBe(true);
+  });
+
+  it("retries an empty case readback before returning the authoritative record", async () => {
+    client.readContract.mockResolvedValueOnce("").mockResolvedValueOnce(JSON.stringify({ case_id: "case-1", owner: OWNER, state: "FROZEN" }));
+
+    await expect(readCase("case-1")).resolves.toMatchObject({ case_id: "case-1", state: "FROZEN" });
+    expect(client.readContract).toHaveBeenCalledTimes(2);
   });
 });

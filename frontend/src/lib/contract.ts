@@ -63,8 +63,17 @@ function parseCase(value: unknown): CaseRecord {
 }
 
 export async function readCase(caseId: string): Promise<CaseRecord> {
-  const result = await readClient.readContract({ address: requireAddress(), functionName: "get_case", args: [caseId] });
-  return parseCase(result);
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const result = await readClient.readContract({ address: requireAddress(), functionName: "get_case", args: [caseId] });
+      return parseCase(result);
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 1500 * (attempt + 1)));
+    }
+  }
+  throw new Error(userErrorMessage(lastError, "Authoritative case readback is temporarily unavailable. Try again."));
 }
 
 export async function readCaseId(owner: string, caseNonce: string): Promise<string> {
