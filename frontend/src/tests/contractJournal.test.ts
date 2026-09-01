@@ -53,4 +53,16 @@ describe("pending transaction reconciliation", () => {
     await expect(readCase("case-1")).resolves.toMatchObject({ case_id: "case-1", state: "FROZEN" });
     expect(client.readContract).toHaveBeenCalledTimes(2);
   });
+
+  it("keeps bounded retrying through delayed post-finality visibility", async () => {
+    client.readContract
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce(JSON.stringify({ case_id: "case-1", owner: OWNER, state: "DRAFT" }));
+
+    await expect(readCase("case-1")).resolves.toMatchObject({ case_id: "case-1", state: "DRAFT" });
+    expect(client.readContract).toHaveBeenCalledTimes(5);
+  }, 30000);
 });
