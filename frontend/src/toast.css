@@ -1,3 +1,189 @@
-.toast-link{display:flex;gap:14px;margin-top:12px;align-items:center}
-.toast-link a,.toast-copy{color:var(--mint);font:11px 'DM Mono',monospace}
-.toast-copy{border:0!important;background:transparent!important;padding:0!important;cursor:pointer}
+/* ==========================================================================
+   Floating Notification & Transaction Drawer Toast
+   ========================================================================== */
+.notification-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  max-width: 540px;
+  width: calc(100vw - 48px);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), 0 0 24px rgba(0, 0, 0, 0.4);
+  padding: 16px 18px;
+  animation: slideInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.toast-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.toast-success .toast-icon-wrap {
+  background: var(--emerald-surface);
+  color: var(--emerald-base);
+  border: 1px solid var(--emerald-border);
+}
+
+.toast-danger .toast-icon-wrap {
+  background: var(--rose-surface);
+  color: var(--rose-base);
+  border: 1px solid var(--rose-border);
+}
+
+.toast-pending .toast-icon-wrap {
+  background: var(--sky-surface);
+  color: var(--sky-base);
+  border: 1px solid var(--sky-border);
+}
+
+.toast-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-message {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.toast-hash-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.hash-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.hash-value {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-canvas);
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-toast-action,
+.btn-toast-link,
+.btn-toast-reconcile {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btn-toast-action {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+}
+
+.btn-toast-action:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.btn-toast-link {
+  background: var(--sky-surface);
+  border: 1px solid var(--sky-border);
+  color: var(--sky-base);
+}
+
+.btn-toast-link:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+
+.btn-toast-reconcile {
+  background: var(--amber-surface);
+  border: 1px solid var(--amber-border);
+  color: var(--amber-base);
+}
+
+.btn-toast-reconcile:hover {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.btn-toast-close {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease;
+}
+
+.btn-toast-close:hover {
+  color: var(--text-primary);
+}
+
+/* Toast border accents */
+.toast-success {
+  border-left: 4px solid var(--emerald-base);
+}
+
+.toast-danger {
+  border-left: 4px solid var(--rose-base);
+}
+
+.toast-pending {
+  border-left: 4px solid var(--sky-base);
+}
+
+@media (max-width: 640px) {
+  .notification-toast {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}
